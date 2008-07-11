@@ -13,6 +13,7 @@
 
 #define USE_FAT12
 	
+#define INIT_RETRIES 1
 
 #define PARTTYPE_FAT12	0x01
 #define PARTTYPE_FAT16S	0x04

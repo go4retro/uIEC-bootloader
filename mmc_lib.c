@@ -1,5 +1,6 @@
 #include <avr/io.h>
 #include "mmc_lib.h"
+#include "disk_lib.h"
 #include "fat1216.h"
 
 #include <util/delay.h>
@@ -45,7 +46,7 @@ static uint8_t send_cmd(void)
 	return(result); // TimeOut !
 }
 
-uint8_t mmc_init(void)
+uint8_t disk_initialize(void)
 {
 	SPCR = 0;
 	MMC_DDR = 1<<SPI_CLK | 1<<SPI_MOSI | 1<<MMC_CS;	//MMC Chip Select -> Output
@@ -82,10 +83,10 @@ uint8_t mmc_init(void)
 	}
 	
 	if (i == MMC_CMD0_RETRIES)
-		return MMC_CMD0_TIMEOUT;
+		return DISK_TIMEOUT;
 	
 	if (res != 0x01) //Response R1 from MMC (0x01: IDLE, The card is in idle state and running the initializing process.)
-		return(MMC_INIT);
+		return(DISK_INIT);
 	
 	cmd[0]=0x40 + MMC_SEND_OP_COND;
 	
@@ -98,14 +99,14 @@ uint8_t mmc_init(void)
 			MMCCS_HI;
 			spi_send_byte(0xFF);
 			spi_send_byte(0xFF);
-			return MMC_OK;
+			return DISK_OK;
 		}
 		i--;
 	}
 	
 	MMCCS_HI;
 	
-	return(MMC_OP_COND_TIMEOUT);
+	return(DISK_TIMEOUT);
 }
 
 static uint8_t wait_start_byte(void)
@@ -124,8 +125,7 @@ static uint8_t wait_start_byte(void)
 	return MMC_NOSTARTBYTE;
 }
 
-uint8_t mmc_start_read_block(uint32_t adr)
-{
+void disk_read(uint32_t adr) {
 	adr <<= 1;
 	
 	cmd[0] = 0x40 + MMC_READ_SINGLE_BLOCK;
@@ -139,20 +139,15 @@ uint8_t mmc_start_read_block(uint32_t adr)
 	if (send_cmd() != 0x00)
 	{
 		MMCCS_HI;
-		return(MMC_CMDERROR); //wrong response!
+		return; //wrong response!
 	}
 	
 	if (wait_start_byte())
 	{
 		MMCCS_HI;
-		return MMC_NOSTARTBYTE;
+		return;
 	}
 	
-	return(MMC_OK);
-}
-
-void mmc_read_buffer(void)
-{
 	unsigned char *buf = fat_buf;
 	unsigned short len = 512;
 	while (len--)
@@ -160,10 +155,7 @@ void mmc_read_buffer(void)
 		spi_send_byte(0xFF);
 		*(buf++) = SPDR;
 	}
-}
 
-void mmc_stop_read_block(void)
-{
 	//read 2 bytes CRC (not used);
 	spi_send_byte(0xFF);
 	spi_send_byte(0xFF);

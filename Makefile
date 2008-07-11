@@ -43,7 +43,8 @@
 # MCU name
 #MCU = atmega16
 #MCU = atmega32
-MCU = atmega644
+#MCU = atmega644
+MCU = atmega1281
 
 
 # Processor frequency.
@@ -80,8 +81,14 @@ TARGET = bootloader
 
 #mega644
 # "IEC1"
+#DEVID = 0x31434549
+#BOOTLOADERSTARTADR = 0xF000
+#BOOTLDRSIZE = 0x1000
+
+#mega1281
+# "IEC1"
 DEVID = 0x31434549
-BOOTLOADERSTARTADR = 0xF000
+BOOTLOADERSTARTADR = 0x1F000
 BOOTLDRSIZE = 0x1000
 
 
@@ -97,7 +104,8 @@ OBJDIR = obj
 
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC = main.c mmc_lib.c fat1216.c
+#SRC = main.c mmc_lib.c fat1216.c
+SRC = main.c ide_lib.c fat1216.c
 
 
 # List C++ source files here. (C dependencies are automatically generated.)
@@ -145,7 +153,7 @@ CSTANDARD = -std=gnu99
 # Place -D or -U options here for C sources
 CDEFS = -DF_CPU=$(F_CPU)UL
 CDEFS += -DDEVID=$(DEVID)
-CDEFS += -DBOOTLDRSIZE=$(BOOTLDRSIZE)
+CDEFS += -DBOOTLDRSIZE=$(BOOTLDRSIZE)UL
 
 
 # Place -D or -U options here for C++ sources
@@ -292,14 +300,18 @@ LDFLAGS	+= -Wl,--section-start=.text=$(BOOTLOADERSTARTADR)
 # Type: avrdude -c ?
 # to get a full listing.
 #
-AVRDUDE_PROGRAMMER = stk500v2
+AVRDUDE_PROGRAMMER = stk200
 
 # com1 = serial port. Use lpt1 to connect to parallel port.
-AVRDUDE_PORT = com2    # programmer connected to serial device
+AVRDUDE_PORT = lpt1    # programmer connected to serial device
 
 AVRDUDE_WRITE_FLASH = -U flash:w:$(OBJDIR)/$(TARGET).hex
 #AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(OBJDIR)/$(TARGET).eep
 
+EFUSE = 0xff
+HFUSE = 0xd2
+LFUSE = 0xfc
+AVRDUDE_WRITE_FUSES = -U efuse:w:$(EFUSE):m -U hfuse:w:$(HFUSE):m -U lfuse:w:$(LFUSE):m
 
 # Uncomment the following if you want avrdude's erase cycle counter.
 # Note that this counter needs to be initialized first using -Yn,
@@ -467,6 +479,9 @@ gccversion :
 program: $(OBJDIR)/$(TARGET).hex $(OBJDIR)/$(TARGET).eep
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
 	
+fuses: $(OBJDIR)/$(TARGET).hex $(OBJDIR)/$(TARGET).eep
+	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM) $(AVRDUDE_WRITE_FUSES)
+  
 #"c:/Programme/Atmel/AVR Tools/STK500/stk500.exe" -d$(MCU) -e -ifpeter/$(TARGET).hex -pf -vf
 
 

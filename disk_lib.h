@@ -1,7 +1,7 @@
 /*-------------------------------------------------
-	 mmc_lib.h C-header file for AVRGCC
+	 disk_lib.h C-header file for AVRGCC
 	------------------------------------
-	Interface for MultiMediaCard via SPI
+	Interface definitions
 	
 	Author:
 		Stefan Seegel
@@ -39,36 +39,29 @@
 	
 ---------------------------------------------------*/
 
-//Port & Pin definitions. Be sure to use a pin of the same port as SPI for CS (Chip Select) !
-//Settings below are recommended for a MEGA16/MEGA32
-#define MMC_PORT PORTB
-#define MMC_DDR DDRB
-
-#define SPI_MISO	PB6		//DataOut of MMC 
-#define SPI_MOSI	PB5		//DataIn of  MMC
-#define SPI_CLK  	PB7		//Clock of MMC
-#define MMC_CS		PB4		//ChipSelect of MMC
-
-//Clockrate while initialisation / reading / writing
-#define SPI_INIT_CLOCK 1<<SPR1 | 1<<SPR0
-#define SPI_READ_CLOCK 0<<SPR1 | 0<<SPR0
-#define SPI_WRITE_CLOCK 1<<SPR1 | 0<<SPR0
-
-#define MMC_CMD0_RETRIES 15
-
-//MMC Commandos
-#define MMC_GO_IDLE_STATE 0
-#define MMC_SEND_OP_COND 1
-#define MMC_SEND_CSD	9
-#define MMC_SEND_CID 10
-#define MMC_SET_BLOCKLEN 16
-#define MMC_READ_SINGLE_BLOCK 17
-#define MMC_WRITE_BLOCK 24
-
 // Result Codes
-#define MMC_OK 				0
-#define MMC_INIT 1
-#define MMC_CMD0_TIMEOUT 2
-#define MMC_NOSTARTBYTE	3
-#define MMC_CMDERROR	4
-#define MMC_OP_COND_TIMEOUT		5
+#define DISK_OK 				      0
+#define DISK_INIT             1
+#define DISK_TIMEOUT          2
+
+extern uint8_t disk_initialize(void);
+/*			
+*		Call disk_initialize one time after a card has been connected to the µC's SPI bus!
+*	
+*		return values:
+*			DISK_OK:				MMC initialized successfully
+*			DISK_INIT:			Error while trying to reset MMC
+*/
+
+extern void disk_read(uint32_t adr);
+/*
+*		disk_read initializes the reading of a sector
+*
+*		Parameters:
+*			adr: specifies address to be read from
+*
+*		Example Code:
+*			unsigned char mmc_buf[512];
+*			init_disk();	//Initializes disk
+*			disk_read(1000);	//start reading sector 1000
+*/
