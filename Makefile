@@ -105,7 +105,7 @@ OBJDIR = obj
 
 # List C source files here. (C dependencies are automatically generated.)
 #SRC = main.c mmc_lib.c fat.c
-SRC = main.c ata.c fat.c
+SRC = main.c ata.c fat.c uart.c
 #SRC = main.c sdcard.c spi.c fat.c crc7.c
 
 

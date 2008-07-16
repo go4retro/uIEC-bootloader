@@ -41,7 +41,7 @@ typedef struct
 } bootldrinfo_t;
 
 
-uint16_t updatecluster; //is set when update is available
+sector_t updatecluster; //is set when update is available
 bootldrinfo_t current_bootldrinfo;
 
 void (*app_start)(void) = 0x0000;
@@ -82,7 +82,7 @@ static inline uint16_t crc_file(void)
 		FLASH_LED_PORT ^= 1<<FLASH_LED_PIN;
 		#endif
 		
-		fat_readfilesector(fstclust, filesector);
+		fat_readfilesector(filestart, filesector);
 	
      	for (index=0; index < 512; index++)
      	{
@@ -111,7 +111,7 @@ static inline void check_file(void)
 		return;
 
 	bootldrinfo_t *file_bootldrinfo;
-	fat_readfilesector(fstclust, (FLASHEND - BOOTLDRSIZE + 1) / 512 - 1);
+	fat_readfilesector(filestart, (FLASHEND - BOOTLDRSIZE + 1) / 512 - 1);
 	
 	file_bootldrinfo =  (bootldrinfo_t*) (uint8_t*) (fat_buf + (FLASHEND - BOOTLDRSIZE - sizeof(bootldrinfo_t) + 1) % 512);
 	
@@ -119,14 +119,12 @@ static inline void check_file(void)
 	if (file_bootldrinfo->dev_id != DEVID)
 		return;
 	
-	uart_putc('!');
 	//Check application version
 	if (file_bootldrinfo->app_version <= current_bootldrinfo.app_version && 
 	    file_bootldrinfo->app_version   != 0 &&
 	    current_bootldrinfo.app_version != 0)
 		return;
 	
-  uart_putc('@');
 	// If development version in flash and in file,
         // check for different crc
 	if (current_bootldrinfo.app_version == 0 &&
@@ -134,18 +132,12 @@ static inline void check_file(void)
 	    current_bootldrinfo.crc == file_bootldrinfo->crc)
 	        return;
 
-  uart_putc('#');
 	// check CRC of file
 	if(crc_file() != 0)
 	 return;
 	
-	uart_puthex((uint8_t)(file_bootldrinfo->app_version>>8));
-  uart_puthex((uint8_t)(file_bootldrinfo->app_version));
-  uart_putc('$');
-  uart_puthex((uint8_t)(current_bootldrinfo.app_version>>8));
-  uart_puthex((uint8_t)(current_bootldrinfo.app_version));
 	current_bootldrinfo.app_version = file_bootldrinfo->app_version;
-	updatecluster = fstclust;
+	updatecluster = filestart;
 	
 }
 
@@ -218,7 +210,6 @@ int main(void)
 	}
 
 	if (current_bootldrinfo.app_version == 0xFFFF) {
-	  uart_putc('-');
 		current_bootldrinfo.app_version = 0;    //application not flashed yet
 	} else {
 	  if(crc_flash())

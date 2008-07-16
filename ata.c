@@ -128,8 +128,8 @@ static void ata_read_part (uint8_t *buff, uint8_t ofs, uint8_t count) {
 uint8_t disk_initialize(void)
 {
   /* Initialize the ATA control port */
-  ATA_PORT_CTRL_OUT=0xff;
-  ATA_PORT_CTRL_DDR=0xff;
+  ATA_PORT_CTRL_OUT = 0xff;
+  ATA_PORT_CTRL_DDR = 0xff;
 
   uint8_t data[2];
   uint32_t i = DELAY_VALUE(ATA_INIT_TIMEOUT);
@@ -161,6 +161,7 @@ uint8_t disk_initialize(void)
   return DISK_OK;
 
 di_error:
+  ATA_PORT_DATA_HI_OUT = 0xff; // signal we did not find the disk, don't try again.
 	return(DISK_INIT);
 }
 

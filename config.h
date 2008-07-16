@@ -1,7 +1,7 @@
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
-//#define CONFIG_UART_DEBUG y
+#define CONFIG_UART_DEBUG y
 
 #define CONFIG_UART_BAUDRATE 38400
 
