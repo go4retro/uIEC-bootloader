@@ -15,6 +15,8 @@
 	
 #define INIT_RETRIES 1
 
+typedef enum { ERR_OK = 0, ERR_INIT, ERR_INVALID_SIG, ERR_DELETED_ENTRY, ERR_ENDOFDIR, ERR_NO_DATA } result_t;
+
 #define PARTTYPE_FAT12	0x01
 #define PARTTYPE_FAT16S	0x04
 #define PARTTYPE_FAT16L	0x06
@@ -29,6 +31,7 @@
 
 extern uint8_t fat_buf[512];
 extern uint32_t filesize;
+extern uint32_t fstclust;
 
 typedef struct
 {
@@ -99,7 +102,7 @@ typedef struct
 
 typedef struct 
 {
-	char		name[11];      //8 chars filename
+	uint8_t name[11];      //8 chars filename
 	uint8_t	attr;         //file attributes RSHA, Longname, Drive Label, Directory
 	uint8_t reserved;
 	uint8_t fcrttime;			//Fine resolution creation time stamp, in tenths of a second
@@ -118,7 +121,7 @@ typedef union
 } fatsector_t;
 
 
-extern uint8_t fat_init(void);
+uint8_t fat_init(void);
 /*
 	DESCRIPTION:
 		Initializes partition
@@ -133,7 +136,7 @@ extern uint8_t fat_init(void);
 		
 */
 
-extern uint16_t fat_readRootDirEntry(uint16_t entry_num);
+uint8_t fat_readRootDirEntry(uint16_t entry_num);
 /*
 	DESCRIPTION:
 		Gets a directory entry 
@@ -152,7 +155,7 @@ extern uint16_t fat_readRootDirEntry(uint16_t entry_num);
 		
 */
 
-extern void fat_readfilesector(uint16_t startcluster, uint16_t filesector);
+void fat_readfilesector(uint16_t startcluster, uint16_t filesector);
 /*
 	DESCRIPTION:
 		Retrieves a sector of a file 

@@ -1,10 +1,12 @@
 #include <avr/io.h>
+#include <string.h>
 #include "disk_lib.h"
 #include "fat.h"
 #include <string.h>
 
 uint8_t fat_buf[512];
 uint32_t filesize;
+uint32_t fstclust;
 
 static uint16_t  RootDirRegionStartSec;
 static uint32_t  DataRegionStartSec;
@@ -15,7 +17,7 @@ static uint8_t   part_type;
 
 static uint16_t currentfatsector;
 
-unsigned char fat_init(void)
+uint8_t fat_init(void)
 {
 	mbr_t *mbr = (mbr_t*) fat_buf;
 	vbr_t *vbr = (vbr_t*) fat_buf;
@@ -26,13 +28,13 @@ unsigned char fat_init(void)
 		init = disk_initialize();
 	
 	if (init != DISK_OK)
-		return 1;
+		return ERR_INIT;
 		
 	//Load MBR
 	disk_read(0);
 	
 	if (mbr->sector.magic != 0xAA55)
-		return 2;
+		return ERR_INVALID_SIG;
 		
 	//Try sector 0 as MBR
 	#ifdef USE_FAT12
@@ -50,7 +52,7 @@ unsigned char fat_init(void)
 	
 	//Check VBR
 	if ((vbr->bsFileSysType[0] != 'F') || (vbr->bsFileSysType[3] != '1'))
-		return 2;
+		return ERR_INVALID_SIG;
 	
 	#ifdef USE_FAT12
 	if (vbr->bsFileSysType[4] == '2')
@@ -60,7 +62,7 @@ unsigned char fat_init(void)
 		if (vbr->bsFileSysType[4] == '6')
 			part_type = PARTTYPE_FAT16L;
 		else
-			return 2;
+			return ERR_INVALID_SIG;
 	
 	SectorsPerCluster  			= vbr->bsSecPerClus;		// 8
 	
@@ -73,11 +75,11 @@ unsigned char fat_init(void)
 	return 0;
 }
 
-uint16_t fat_readRootDirEntry(uint16_t entry_num) {
+uint8_t fat_readRootDirEntry(uint16_t entry_num) {
 	direntry_t *dir; //Zeiger auf einen Verzeichniseintrag
 	
 	if ((entry_num / 16) >= RootDirRegionSize)
-		return 0xFFFF; //End of root dir region reached!
+		return ERR_ENDOFDIR; //End of root dir region reached!
 	
 	//uint32_t dirsector = RootDirRegionStartSec + entry_num * sizeof(direntry_t) / 512;
 	uint32_t dirsector = RootDirRegionStartSec + entry_num / 16;
@@ -87,12 +89,14 @@ uint16_t fat_readRootDirEntry(uint16_t entry_num) {
 
 	dir = (direntry_t *) fat_buf + entry_num;
 
-	if ((dir->name[0] == 0) || (dir->name[0] == 0xE5) || (dir->fstclust == 0))
-		return 0xFFFF;
+	if (dir->name[0] == 0)
+	  return ERR_ENDOFDIR;
+	if((dir->name[0] == 0xE5) || (dir->fstclust == 0))
+		return ERR_DELETED_ENTRY;
 		
 	filesize = dir->filesize;
-	
-	return dir->fstclust;
+	fstclust = dir->fstclust;
+	return ERR_OK;
 }
 
 static void load_fat_sector(uint16_t sec)

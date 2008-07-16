@@ -41,7 +41,6 @@ typedef struct
 } bootldrinfo_t;
 
 
-uint16_t startcluster;
 uint16_t updatecluster; //is set when update is available
 bootldrinfo_t current_bootldrinfo;
 
@@ -61,7 +60,17 @@ void get_mcusr(void)
 }
 
 
-static inline uint8_t crc_file(void)
+static inline uint16_t crc_flash(void) {
+  uint32_t adr;
+  uint16_t flash_crc;
+
+  for (adr=0,flash_crc = 0xFFFF; adr<FLASHEND - BOOTLDRSIZE + 1; adr++)
+     flash_crc = _crc_ccitt_update(flash_crc, pgm_read_byte_far(adr));
+  
+  return flash_crc;
+}
+
+static inline uint16_t crc_file(void)
 {
 	uint16_t filesector;
 	uint16_t index;
@@ -73,7 +82,7 @@ static inline uint8_t crc_file(void)
 		FLASH_LED_PORT ^= 1<<FLASH_LED_PIN;
 		#endif
 		
-		fat_readfilesector(startcluster, filesector);
+		fat_readfilesector(fstclust, filesector);
 	
      	for (index=0; index < 512; index++)
      	{
@@ -102,7 +111,7 @@ static inline void check_file(void)
 		return;
 
 	bootldrinfo_t *file_bootldrinfo;
-	fat_readfilesector(startcluster, (FLASHEND - BOOTLDRSIZE + 1) / 512 - 1);
+	fat_readfilesector(fstclust, (FLASHEND - BOOTLDRSIZE + 1) / 512 - 1);
 	
 	file_bootldrinfo =  (bootldrinfo_t*) (uint8_t*) (fat_buf + (FLASHEND - BOOTLDRSIZE - sizeof(bootldrinfo_t) + 1) % 512);
 	
@@ -136,7 +145,7 @@ static inline void check_file(void)
   uart_puthex((uint8_t)(current_bootldrinfo.app_version>>8));
   uart_puthex((uint8_t)(current_bootldrinfo.app_version));
 	current_bootldrinfo.app_version = file_bootldrinfo->app_version;
-	updatecluster = startcluster;
+	updatecluster = fstclust;
 	
 }
 
@@ -185,9 +194,8 @@ static inline void flash_update(void)
 
 int main(void)
 {
+  uint8_t res;
 	uint16_t i;
-  uint16_t flash_crc;
-  uint32_t adr;
   
 	
 	init_serial();
@@ -209,37 +217,30 @@ int main(void)
 	  ((uint8_t*)&current_bootldrinfo)[i] = pgm_read_byte_far(FLASHEND - BOOTLDRSIZE - sizeof(bootldrinfo_t) + 1 + i);
 	}
 
-  uart_puthex((uint8_t)(current_bootldrinfo.crc>>8));
-  uart_puthex((uint8_t)(current_bootldrinfo.crc));
-  uart_putc('+');
-  uart_puthex((uint8_t)(current_bootldrinfo.app_version>>8));
-  uart_puthex((uint8_t)(current_bootldrinfo.app_version));
-	
 	if (current_bootldrinfo.app_version == 0xFFFF) {
 	  uart_putc('-');
 		current_bootldrinfo.app_version = 0;    //application not flashed yet
 	} else {
-	  for (adr=0,flash_crc = 0xFFFF; adr<FLASHEND - BOOTLDRSIZE + 1; adr++)
-	     flash_crc = _crc_ccitt_update(flash_crc, pgm_read_byte_far(adr));
-	     
-	   if (flash_crc)
+	  if(crc_flash())
 	     current_bootldrinfo.app_version = 0; //bad app code, reflash
 	}
 	
 	
-	if (fat_init() == 0) {
-		for (i=0; i<512; i++)	{
+	if (fat_init() == ERR_OK) {
+	  i = 0;
+		do {
 #ifdef USE_FLASH_LED
 		  FLASH_LED_PORT ^= 1<<FLASH_LED_PIN;
 #endif
 
-			startcluster = fat_readRootDirEntry(i);
+			res = fat_readRootDirEntry(i++);
 			
-			if (startcluster == 0xFFFF)
-				continue;
-
-			check_file();
-		}
+			if (res == ERR_ENDOFDIR)
+			  break;
+			
+			if(res == ERR_OK)
+			  check_file();
+		} while (i);
 #ifdef USE_FLASH_LED
 #if FLASH_LED_POLARITY
 		FLASH_LED_PORT &= ~(1<<FLASH_LED_PIN);
@@ -252,11 +253,7 @@ int main(void)
 			flash_update();
 	}
 
-	uart_putc('*');
-	for (adr=0,flash_crc = 0xFFFF; adr<FLASHEND - BOOTLDRSIZE + 1; adr++)
-		flash_crc = _crc_ccitt_update(flash_crc, pgm_read_byte_far(adr));
-		
-	if (flash_crc == 0)	{
+	if(crc_flash() == 0)	{
 		//Led off
 		#ifdef USE_FLASH_LED
 		FLASH_LED_DDR = 0x00;
