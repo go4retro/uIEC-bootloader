@@ -2,7 +2,7 @@
 #include <avr/io.h>
 #include "ata.h"
 #include "disk_lib.h"
-#include "fat1216.h"
+#include "fat.h"
 #include "config.h"
 #include "uart.h"
 

@@ -3,7 +3,7 @@
 #include <avr/boot.h>
 #include <avr/pgmspace.h>
 #include <util/crc16.h>
-#include "fat1216.h"
+#include "fat.h"
 #include "config.h"
 #include "uart.h"
 #include <stdlib.h>
@@ -73,7 +73,7 @@ static inline uint8_t crc_file(void)
 		FLASH_LED_PORT ^= 1<<FLASH_LED_PIN;
 		#endif
 		
-		fat1216_readfilesector(startcluster, filesector);
+		fat_readfilesector(startcluster, filesector);
 	
      	for (index=0; index < 512; index++)
      	{
@@ -102,7 +102,7 @@ static inline void check_file(void)
 		return;
 
 	bootldrinfo_t *file_bootldrinfo;
-	fat1216_readfilesector(startcluster, (FLASHEND - BOOTLDRSIZE + 1) / 512 - 1);
+	fat_readfilesector(startcluster, (FLASHEND - BOOTLDRSIZE + 1) / 512 - 1);
 	
 	file_bootldrinfo =  (bootldrinfo_t*) (uint8_t*) (fat_buf + (FLASHEND - BOOTLDRSIZE - sizeof(bootldrinfo_t) + 1) % 512);
 	
@@ -155,7 +155,7 @@ static inline void flash_update(void)
 		#endif
 		
 		lpword = (uint16_t*) fat_buf;
-		fat1216_readfilesector(updatecluster, filesector);
+		fat_readfilesector(updatecluster, filesector);
 	
 		for (i=0; i<(512 / SPM_PAGESIZE); i++)
 		{
@@ -227,13 +227,13 @@ int main(void)
 	}
 	
 	
-	if (fat1216_init() == 0) {
+	if (fat_init() == 0) {
 		for (i=0; i<512; i++)	{
 #ifdef USE_FLASH_LED
 		  FLASH_LED_PORT ^= 1<<FLASH_LED_PIN;
 #endif
 
-			startcluster = fat1216_readRootDirEntry(i);
+			startcluster = fat_readRootDirEntry(i);
 			
 			if (startcluster == 0xFFFF)
 				continue;

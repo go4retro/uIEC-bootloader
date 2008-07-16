@@ -118,7 +118,7 @@ typedef union
 } fatsector_t;
 
 
-extern uint8_t fat1216_init(void);
+extern uint8_t fat_init(void);
 /*
 	DESCRIPTION:
 		Initializes partition
@@ -133,7 +133,7 @@ extern uint8_t fat1216_init(void);
 		
 */
 
-extern uint16_t fat1216_readRootDirEntry(uint16_t entry_num);
+extern uint16_t fat_readRootDirEntry(uint16_t entry_num);
 /*
 	DESCRIPTION:
 		Gets a directory entry 
@@ -152,7 +152,7 @@ extern uint16_t fat1216_readRootDirEntry(uint16_t entry_num);
 		
 */
 
-extern void fat1216_readfilesector(uint16_t startcluster, uint16_t filesector);
+extern void fat_readfilesector(uint16_t startcluster, uint16_t filesector);
 /*
 	DESCRIPTION:
 		Retrieves a sector of a file 

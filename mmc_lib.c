@@ -1,7 +1,7 @@
 #include <avr/io.h>
 #include "mmc_lib.h"
 #include "disk_lib.h"
-#include "fat1216.h"
+#include "fat.h"
 
 #include <util/delay.h>
 

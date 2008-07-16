@@ -59,7 +59,7 @@
 #include "config.h"
 #include "spi.h"
 #include "crc7.h"
-#include "fat1216.h"
+#include "fat.h"
 #include "disk_lib.h"
 
 #ifndef TRUE

@@ -1,6 +1,6 @@
 #include <avr/io.h>
 #include "disk_lib.h"
-#include "fat1216.h"
+#include "fat.h"
 #include <string.h>
 
 uint8_t fat_buf[512];
@@ -15,7 +15,7 @@ static uint8_t   part_type;
 
 static uint16_t currentfatsector;
 
-unsigned char fat1216_init(void)
+unsigned char fat_init(void)
 {
 	mbr_t *mbr = (mbr_t*) fat_buf;
 	vbr_t *vbr = (vbr_t*) fat_buf;
@@ -73,7 +73,7 @@ unsigned char fat1216_init(void)
 	return 0;
 }
 
-uint16_t fat1216_readRootDirEntry(uint16_t entry_num) {
+uint16_t fat_readRootDirEntry(uint16_t entry_num) {
 	direntry_t *dir; //Zeiger auf einen Verzeichniseintrag
 	
 	if ((entry_num / 16) >= RootDirRegionSize)
@@ -104,7 +104,7 @@ static void load_fat_sector(uint16_t sec)
 }
 
 
-void fat1216_readfilesector(uint16_t startcluster, uint16_t filesector)
+void fat_readfilesector(uint16_t startcluster, uint16_t filesector)
 {
 	uint16_t clusteroffset;
 	uint8_t temp, secoffset;

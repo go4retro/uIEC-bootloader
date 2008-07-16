@@ -44,7 +44,7 @@
 #define DISK_INIT             1
 #define DISK_TIMEOUT          2
 
-extern uint8_t disk_initialize(void);
+uint8_t disk_initialize(void);
 /*			
 *		Call disk_initialize one time after a card has been connected to the µC's SPI bus!
 *	
@@ -53,7 +53,7 @@ extern uint8_t disk_initialize(void);
 *			DISK_INIT:			Error while trying to reset MMC
 */
 
-extern void disk_read(uint32_t adr);
+void disk_read(uint32_t adr);
 /*
 *		disk_read initializes the reading of a sector
 *
