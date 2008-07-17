@@ -11,11 +11,6 @@
 	11/2005 Stefan Seegel, dahamm@gmx.net
 */
 
-#define USE_FAT12
-#define USE_FAT32
-	
-#define INIT_RETRIES 1
-
 typedef enum { ERR_OK = 0, ERR_INIT, ERR_INVALID_SIG, ERR_DELETED_ENTRY, ERR_ENDOFDIR, ERR_NO_DATA } result_t;
 typedef enum { PARTTYPE_NONE = 0, PARTTYPE_FAT12, PARTTYPE_FAT16, PARTTYPE_FAT32 } parttype_t;
 

@@ -24,9 +24,9 @@
 
 */
 
+#include <stdio.h>
 #include <avr/io.h>
 #include <avr/pgmspace.h>
-#include <stdio.h>
 #include "config.h"
 #include "avrcompat.h"
 #include "uart.h"

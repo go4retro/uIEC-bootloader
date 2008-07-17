@@ -105,7 +105,7 @@ OBJDIR = obj
 
 # List C source files here. (C dependencies are automatically generated.)
 #SRC = main.c mmc_lib.c fat.c
-SRC = main.c ata.c fat.c uart.c
+SRC = main.c ata.c fat.c
 #SRC = main.c sdcard.c spi.c fat.c crc7.c
 
 
@@ -153,7 +153,7 @@ CSTANDARD = -std=gnu99
 
 # Place -D or -U options here for C sources
 CDEFS = -DF_CPU=$(F_CPU)UL
-CDEFS += -DDEVID=$(DEVID)
+CDEFS += -DCONFIG_BOOT_DEVID=$(DEVID)
 CDEFS += -DBOOTLDRSIZE=$(BOOTLDRSIZE)UL
 
 
@@ -180,7 +180,7 @@ CFLAGS += -fpack-struct
 CFLAGS += -fshort-enums
 CFLAGS += -Wall
 CFLAGS += -Wstrict-prototypes
-#CFLAGS += -mshort-calls
+CFLAGS += -mshort-calls
 #CFLAGS += -fno-unit-at-a-time
 #CFLAGS += -Wundef
 #CFLAGS += -Wunreachable-code

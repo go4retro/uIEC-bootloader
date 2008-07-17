@@ -1,4 +1,12 @@
                               Bootloader Change Log
+2008-07-16 By Jim Brain
+
+Version for uIEC 2.X hardware:
+- Mega1281
+- new ID
+- FAT32 support
+- alpha support for newer SD card initialization
+- CRC sanity check on flash will reflash if error.
 
 2008-02-23 By R.Riedel aka 'Shadowolf'
 

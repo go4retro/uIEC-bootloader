@@ -42,6 +42,7 @@
 #  define UDRIE UDRIE0
 #  define UDRE  UDRE0
 #  define USART_UDRE_vect USART0_UDRE_vect
+#  define PGM_READ_BYTE pgm_read_byte
 
 #elif defined __AVR_ATmega32__
 #  define TIMER2_COMPA_vect TIMER2_COMP_vect
@@ -52,6 +53,7 @@
 #  define TIMSK2 TIMSK
 #  define OCIE2A OCIE2
 #  define OCR2A  OCR2
+#  define PGM_READ_BYTE pgm_read_byte
 
 #elif defined __AVR_ATmega128__
 #  define UBRRH  UBRR0H
@@ -70,6 +72,7 @@
 #  define TIMSK2 TIMSK
 #  define OCIE2A OCIE2
 #  define OCR2A  OCR2
+#  define PGM_READ_BYTE pgm_read_byte_far
 
 #elif defined __AVR_ATmega1281__
 #  define RXC    RXC0
@@ -87,6 +90,7 @@
 #  define UDRIE UDRIE0
 #  define UDRE  UDRE0
 #  define USART_UDRE_vect USART0_UDRE_vect
+#  define PGM_READ_BYTE pgm_read_byte_far
 
 #else
 #  error Unknown chip!

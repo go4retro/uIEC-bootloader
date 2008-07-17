@@ -1,6 +1,7 @@
 #include <avr/io.h>
 #include <string.h>
 #include "disk_lib.h"
+#include "config.h"
 #include "fat.h"
 
 uint8_t fat_buf[512];

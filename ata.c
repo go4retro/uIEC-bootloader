@@ -1,10 +1,9 @@
 #include <util/delay.h>
 #include <avr/io.h>
-#include "ata.h"
-#include "disk_lib.h"
-#include "fat.h"
 #include "config.h"
-#include "uart.h"
+#include "disk_lib.h"
+#include "ata.h"
+#include "fat.h"
 
 #define FALSE 0
 #define TRUE 1

@@ -1,36 +1,14 @@
-#include <avr/io.h>
+#include <stdlib.h>
 #include <string.h>
+#include <avr/io.h>
+#include <avr/wdt.h>
 #include <avr/boot.h>
 #include <avr/pgmspace.h>
 #include <util/crc16.h>
-#include "fat.h"
 #include "config.h"
+#include "avrcompat.h"
+#include "fat.h"
 #include "uart.h"
-#include <stdlib.h>
-#include <avr/wdt.h>
-
-/*#define USE_FLASH_LED
-#define FLASH_LED_PORT PORTC
-#define FLASH_LED_DDR DDRC
-#define FLASH_LED_PIN PC0
-#define FLASH_LED_POLARITY 1
-
-#define USE_ALIVE_LED
-#define ALIVE_LED_PORT PORTC
-#define ALIVE_LED_DDR DDRC
-#define ALIVE_LED_PIN PC1
-*/
-
-#define USE_FLASH_LED
-#define FLASH_LED_PORT PORTG
-#define FLASH_LED_DDR DDRG
-#define FLASH_LED_PIN PG4
-#define FLASH_LED_POLARITY 0
-
-#define USE_ALIVE_LED
-#define ALIVE_LED_PORT PORTG
-#define ALIVE_LED_DDR DDRG
-#define ALIVE_LED_PIN PG4
 
 
 typedef struct
@@ -65,7 +43,7 @@ static inline uint16_t crc_flash(void) {
   uint16_t flash_crc;
 
   for (adr=0,flash_crc = 0xFFFF; adr<FLASHEND - BOOTLDRSIZE + 1; adr++)
-     flash_crc = _crc_ccitt_update(flash_crc, pgm_read_byte_far(adr));
+     flash_crc = _crc_ccitt_update(flash_crc, PGM_READ_BYTE(adr));
   
   return flash_crc;
 }
@@ -116,7 +94,7 @@ static inline void check_file(void)
 	file_bootldrinfo =  (bootldrinfo_t*) (uint8_t*) (fat_buf + (FLASHEND - BOOTLDRSIZE - sizeof(bootldrinfo_t) + 1) % 512);
 	
 	//Check DEVID
-	if (file_bootldrinfo->dev_id != DEVID)
+	if (file_bootldrinfo->dev_id != CONFIG_BOOT_DEVID)
 		return;
 	
 	//Check application version
@@ -189,7 +167,6 @@ int main(void)
   uint8_t res;
 	uint16_t i;
   
-	
 	init_serial();
 	//LED On
 	#ifdef USE_FLASH_LED
@@ -204,10 +181,13 @@ int main(void)
 	ALIVE_LED_PORT |= 1<<ALIVE_LED_PIN;
 	#endif
 	
-  //memcpy_P(&current_bootldrinfo, (uint8_t*) FLASHEND - BOOTLDRSIZE - sizeof(bootldrinfo_t) + 1, sizeof(bootldrinfo_t));
-	for(i = 0;i < sizeof(bootldrinfo_t);i++) {
-	  ((uint8_t*)&current_bootldrinfo)[i] = pgm_read_byte_far(FLASHEND - BOOTLDRSIZE - sizeof(bootldrinfo_t) + 1 + i);
-	}
+#if FLASHEND > 0xffff
+  for(i = 0;i < sizeof(bootldrinfo_t);i++) {
+    ((uint8_t*)&current_bootldrinfo)[i] = PGM_READ_BYTE(FLASHEND - BOOTLDRSIZE - sizeof(bootldrinfo_t) + 1 + i);
+  }
+#else
+  memcpy_P(&current_bootldrinfo, (uint8_t*) FLASHEND - BOOTLDRSIZE - sizeof(bootldrinfo_t) + 1, sizeof(bootldrinfo_t));
+#endif
 
 	if (current_bootldrinfo.app_version == 0xFFFF) {
 		current_bootldrinfo.app_version = 0;    //application not flashed yet
