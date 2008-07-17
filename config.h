@@ -8,7 +8,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define CONFIG_HARDWARE_VARIANT 4
+#include "autoconf.h"
 
 #if CONFIG_HARDWARE_VARIANT==1
 /* SD Card supply voltage - choose the one appropiate to your board */

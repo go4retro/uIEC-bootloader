@@ -39,75 +39,70 @@
 # To rebuild project do "make clean" then "make all".
 #----------------------------------------------------------------------------
 
+ifdef CONFIG
+ CONFIGSUFFIX = $(CONFIG:config%=%)
+else
+ CONFIG = config
+ CONFIGSUFFIX =
+endif
 
-# MCU name
-#MCU = atmega16
-#MCU = atmega32
-#MCU = atmega644
-MCU = atmega1281
+# Include the configuration file
+include $(CONFIG)
 
+# Set MCU name and length of binary for bootloader
+MCU := $(CONFIG_MCU)
+ifeq ($(MCU),atmega32)
+else ifeq ($(MCU),atmega644)
+  BOOTLOADERSTARTADR = 0xf000
+  BOOTLDRSIZE = 0x1000
+else ifeq ($(MCU),atmega644p)
+  BOOTLOADERSTARTADR = 0xf000
+  BOOTLDRSIZE = 0x1000
+else ifeq ($(MCU),atmega128)
+  BOOTLOADERSTARTADR = 0x1f000
+  BOOTLDRSIZE = 0x1000
+else ifeq ($(MCU),atmega1281)
+  BOOTLOADERSTARTADR = 0x1f000
+  BOOTLDRSIZE = 0x1000
+else
+.PHONY: nochip
+nochip:
+  @echo '=============================================================='
+  @echo 'No known target chip specified.'
+  @echo
+  @echo 'Please disable CONFIG_BOOTLOADER or add the size of the'
+  @echo 'binary to the Makefile.'
+  @exit 1
+endif
 
-# Processor frequency.
-#     This will define a symbol, F_CPU, in all source code files equal to the 
-#     processor frequency. You can then use this symbol in your source code to 
-#     calculate timings. Do NOT tack on a 'UL' at the end, this will be done
-#     automatically to create a 32-bit value in your source code.
-#     Typical values are:
-#         F_CPU =  1000000
-#         F_CPU =  1843200
-#         F_CPU =  2000000
-#         F_CPU =  3686400
-#         F_CPU =  4000000
-#         F_CPU =  7372800
-#         F_CPU =  8000000
-#         F_CPU = 11059200
-#         F_CPU = 14745600
-#         F_CPU = 16000000
-#         F_CPU = 18432000
-#         F_CPU = 20000000
-F_CPU = 8000000
+# Directory for all generated files
+OBJDIR := obj-$(CONFIG_MCU:atmega%=m%)$(CONFIGSUFFIX)
 
+# CPU clock
+F_CPU := $(CONFIG_MCU_FREQ)
 
 # Output format. (can be srec, ihex, binary)
 FORMAT = ihex
 
-TARGET = bootloader
-
-#mega32
-# "IEC!"
-#DEVID = 0x49454321
-#BOOTLOADERSTARTADR = 0x7800
-#BOOTLDRSIZE = 0x0800
-
-#mega644
-# "IEC1"
-#DEVID = 0x31434549
-#BOOTLOADERSTARTADR = 0xF000
-#BOOTLDRSIZE = 0x1000
-
-#mega1281
-# "UI02"
-DEVID = 0x32304955
-BOOTLOADERSTARTADR = 0x1F000
-BOOTLDRSIZE = 0x1000
-
-
-
 # Target file name (without extension).
-TARGET = bootloader-$(DEVID)
-
-
-# Object files directory
-#     To put object files in current directory, use a dot (.), do NOT make
-#     this an empty or blank macro!
-OBJDIR = obj
-
+TARGET = bootloader-$(CONFIG_BOOT_DEVID)
 
 # List C source files here. (C dependencies are automatically generated.)
-#SRC = main.c mmc_lib.c fat.c
-SRC = main.c ata.c fat.c
-#SRC = main.c sdcard.c spi.c fat.c crc7.c
+SRC = main.c fat.c
 
+# uIEC needs the ATA module, all others use SD (for now)
+ifeq ($(CONFIG_HARDWARE_VARIANT),4)
+  SRC += ata.c
+else
+#Older MMC libraries
+  SRC += mmc_lib.c
+#Newer, untested MMC libraries
+# SRC += sdcard.c spi.c crc7.c
+endif
+
+ifeq ($(CONFIG_UART_DEBUG),y)
+  SRC += uart.c
+endif
 
 # List C++ source files here. (C dependencies are automatically generated.)
 CPPSRC = 
@@ -153,7 +148,6 @@ CSTANDARD = -std=gnu99
 
 # Place -D or -U options here for C sources
 CDEFS = -DF_CPU=$(F_CPU)UL
-CDEFS += -DCONFIG_BOOT_DEVID=$(DEVID)
 CDEFS += -DBOOTLDRSIZE=$(BOOTLDRSIZE)UL
 
 
@@ -190,6 +184,7 @@ CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 CFLAGS += $(CSTANDARD)
 CFLAGS += -mtiny-stack
 #CFLAGS += -mno-interrupts
+CFLAGS += -I$(OBJDIR)
 
 #---------------- Compiler Options C++ ----------------
 #  -g*:          generate debugging information
@@ -290,6 +285,9 @@ LDFLAGS += $(patsubst %,-L%,$(EXTRALIBDIRS))
 LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
 LDFLAGS	+= -Wl,--section-start=.text=$(BOOTLOADERSTARTADR)
 #LDFLAGS += -T linker_script.x
+ifeq ($(CONFIG_LINKER_RELAX),y)
+  LDFLAGS += -Wl,-O9,-relax
+endif
 
 
 
@@ -537,7 +535,10 @@ extcoff: $(TARGET).elf
 	@echo $(MSG_EXTENDED_COFF) $(TARGET).cof
 	$(COFFCONVERT) -O coff-ext-avr $< $(TARGET).cof
 
-
+# Generate autoconf.h from config
+.PRECIOUS : $(OBJDIR)/autoconf.h
+$(OBJDIR)/autoconf.h: $(CONFIG) | $(OBJDIR)
+	gawk -f conf2h.awk $(CONFIG) > $(OBJDIR)/autoconf.h
 
 # Create final output files (.hex, .eep) from ELF output file.
 %.hex: %.elf
@@ -577,45 +578,45 @@ extcoff: $(TARGET).elf
 # Link: create ELF output file from object files.
 .SECONDARY : $(TARGET).elf
 .PRECIOUS : $(OBJ)
-$(OBJDIR)/%.elf: $(OBJ)
+$(OBJDIR)/%.elf: $(OBJ) | $(OBJDIR)
 	@echo
 	@echo $(MSG_LINKING) $@
 	$(CC) $(ALL_CFLAGS) $^ --output $@ $(LDFLAGS)
 
 
 # Compile: create object files from C source files.
-$(OBJDIR)/%.o : %.c
+$(OBJDIR)/%.o : %.c | $(OBJDIR) $(OBJDIR)/autoconf.h
 	@echo
 	@echo $(MSG_COMPILING) $<
 	$(CC) -c $(ALL_CFLAGS) $< -o $@ 
 
 
 # Compile: create object files from C++ source files.
-$(OBJDIR)/%.o : %.cpp
+$(OBJDIR)/%.o : %.cpp | $(OBJDIR) $(OBJDIR)/autoconf.h
 	@echo
 	@echo $(MSG_COMPILING_CPP) $<
 	$(CC) -c $(ALL_CPPFLAGS) $< -o $@ 
 
 
 # Compile: create assembler files from C source files.
-%.s : %.c
+%.s : %.c | $(OBJDIR) $(OBJDIR)/autoconf.h
 	$(CC) -S $(ALL_CFLAGS) $< -o $@
 
 
 # Compile: create assembler files from C++ source files.
-%.s : %.cpp
+%.s : %.cpp | $(OBJDIR) $(OBJDIR)/autoconf.h
 	$(CC) -S $(ALL_CPPFLAGS) $< -o $@
 
 
 # Assemble: create object files from assembler source files.
-$(OBJDIR)/%.o : %.S
+$(OBJDIR)/%.o : %.S | $(OBJDIR) $(OBJDIR)/autoconf.h
 	@echo
 	@echo $(MSG_ASSEMBLING) $<
 	$(CC) -c $(ALL_ASFLAGS) $< -o $@
 
 
 # Create preprocessed source for use in sending a bug report.
-%.i : %.c
+%.i : %.c | $(OBJDIR) $(OBJDIR)/autoconf.h
 	$(CC) -E -mmcu=$(MCU) -I. $(CFLAGS) $< -o $@ 
 
 
@@ -632,6 +633,7 @@ clean_list :
 	$(REMOVE) $(OBJDIR)/$(TARGET).map
 	$(REMOVE) $(OBJDIR)/$(TARGET).sym
 	$(REMOVE) $(OBJDIR)/$(TARGET).lss
+	$(REMOVE) $(OBJDIR)/autoconf.h
 	$(REMOVE) $(SRC:%.c=$(OBJDIR)/%.o)
 	$(REMOVE) $(SRC:%.c=$(OBJDIR)/%.lst)
 	$(REMOVE) $(SRC:.c=.s)
@@ -641,7 +643,8 @@ clean_list :
 
 
 # Create object files directory
-$(shell mkdir $(OBJDIR) 2>/dev/null)
+$(OBJDIR):
+	mkdir $(OBJDIR)
 
 
 # Include the dependency files.
