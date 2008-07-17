@@ -2,7 +2,6 @@
 #include <string.h>
 #include "disk_lib.h"
 #include "fat.h"
-#include <string.h>
 
 uint8_t fat_buf[512];
 uint32_t filesize;
@@ -118,6 +117,10 @@ uint8_t fat_readRootDirEntry(uint16_t entry_num) {
 		
 	filesize = dir->filesize;
 	filestart = dir->fstclust;
+#ifdef USE_FAT32
+	if(part_type == PARTTYPE_FAT32)
+	  filestart |= ((uint32_t)(dir->filesize_hi)<<16);
+#endif
 	return ERR_OK;
 }
 

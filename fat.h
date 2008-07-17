@@ -118,7 +118,11 @@ typedef struct
 	uint8_t    fcrttime;		//Fine resolution creation time stamp, in tenths of a second
 	uint32_t   crttime;			//Time of Creation
 	uint16_t   lactime;			//Last Access Time
-	uint16_t   eaindex;			//EA-Index (used by OS/2 and NT) in FAT12 and FAT16, high 2 ytes of first clusternumber in FAT32
+  union
+  {
+    uint16_t   eaindex;			//EA-Index (used by OS/2 and NT) in FAT12 and FAT16
+    uint16_t   filesize_hi; //high 2 ytes of first clusternumber in FAT32
+  };
 	uint32_t   lmodtime;		//Last Modified Time
 	uint16_t   fstclust;		//First cluster in FAT12 and FAT16, low 2 bytes of first clusternumber in FAT32
 	uint32_t   filesize;		//File size
