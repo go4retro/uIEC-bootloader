@@ -54,6 +54,8 @@ uint8_t disk_initialize(void)
 	MMC_DDR = 0;
 	MMC_DDR = 1<<SPI_CLK | 1<<SPI_MOSI | 1<<MMC_CS;	//MMC Chip Select -> Output
 	
+	MMC_PORT |= (1<<SPI_MISO); // activate pullup on MISO - Riedel 2008-07-08
+		
 	SPCR = 1<<SPE | 1<<MSTR | SPI_INIT_CLOCK; //SPI Enable, SPI Master Mode
 	SPSR = 0;
 

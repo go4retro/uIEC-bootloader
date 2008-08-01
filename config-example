@@ -27,6 +27,8 @@ CONFIG_MCU_FREQ=8000000
 # Value of the signature word
 CONFIG_BOOT_DEVID=0x49454321
 
+# Bootloader name
+CONFIG_BOOT_NAME=bootloader-example
 
 # Enable UART debugging - requires 24 bytes plus buffer size in RAM
 CONFIG_UART_DEBUG=n
@@ -54,3 +56,8 @@ CONFIG_SD_AUTO_RETRIES=10
 # Use CRC checks for all SD data transmissions?
 CONFIG_SD_DATACRC=y
 
+# Use the newer SD card library from sd2iec?
+CONFIG_NEW_SDLIB=y
+
+# Check the CRC of flash before and after writing?
+CONFIG_FLASH_CRC_CHECK=y

@@ -38,6 +38,7 @@ void get_mcusr(void)
 }
 
 
+#ifdef CONFIG_FLASH_CRC_CHECK
 static inline uint16_t crc_flash(void) {
   uint32_t adr;
   uint16_t flash_crc;
@@ -47,6 +48,7 @@ static inline uint16_t crc_flash(void) {
   
   return flash_crc;
 }
+#endif
 
 static inline uint16_t crc_file(void)
 {
@@ -125,7 +127,7 @@ static inline void flash_update(void)
 	uint16_t filesector, j;
 	uint8_t i;
 	uint16_t *lpword;
-	uint32_t adr;
+	uint16_t adr;
 	
 	for (filesector = 0; filesector < (FLASHEND - BOOTLDRSIZE + 1) / 512; filesector++)
 	{
@@ -138,7 +140,7 @@ static inline void flash_update(void)
 	
 		for (i=0; i<(512 / SPM_PAGESIZE); i++)
 		{
-			adr = (filesector * 512UL) + i * SPM_PAGESIZE;
+			adr = (filesector * 512) + i * SPM_PAGESIZE;
 			boot_page_erase(adr);
 			while (boot_rww_busy())
 				boot_rww_enable();
@@ -191,9 +193,11 @@ int main(void)
 
 	if (current_bootldrinfo.app_version == 0xFFFF) {
 		current_bootldrinfo.app_version = 0;    //application not flashed yet
+#ifdef CONFIG_FLASH_CRC_CHECK
 	} else {
 	  if(crc_flash())
 	     current_bootldrinfo.app_version = 0; //bad app code, reflash
+#endif
 	}
 	
 	
@@ -224,6 +228,7 @@ int main(void)
 			flash_update();
 	}
 
+#ifdef CONFIG_FLASH_CRC_CHECK
 	if(crc_flash() == 0)	{
 		//Led off
 		#ifdef USE_FLASH_LED
@@ -234,7 +239,7 @@ int main(void)
 	}
 	
 //	while (1);
+#endif
   uart_putc('G');
     app_start();
-
 }

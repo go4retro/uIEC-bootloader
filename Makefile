@@ -52,6 +52,8 @@ include $(CONFIG)
 # Set MCU name and length of binary for bootloader
 MCU := $(CONFIG_MCU)
 ifeq ($(MCU),atmega32)
+  BOOTLOADERSTARTADR = 0x7800
+  BOOTLDRSIZE = 0x0800
 else ifeq ($(MCU),atmega644)
   BOOTLOADERSTARTADR = 0xf000
   BOOTLDRSIZE = 0x1000
@@ -85,7 +87,7 @@ F_CPU := $(CONFIG_MCU_FREQ)
 FORMAT = ihex
 
 # Target file name (without extension).
-TARGET = bootloader-$(CONFIG_BOOT_DEVID)
+TARGET = $(CONFIG_BOOT_NAME)
 
 # List C source files here. (C dependencies are automatically generated.)
 SRC = main.c fat.c
@@ -93,11 +95,11 @@ SRC = main.c fat.c
 # uIEC needs the ATA module, all others use SD (for now)
 ifeq ($(CONFIG_HARDWARE_VARIANT),4)
   SRC += ata.c
+else ifeq ($(CONFIG_NEW_SDLIB),y)
+  SRC += sdcard.c spi.c crc7.c
 else
 #Older MMC libraries
   SRC += mmc_lib.c
-#Newer, untested MMC libraries
-# SRC += sdcard.c spi.c crc7.c
 endif
 
 ifeq ($(CONFIG_UART_DEBUG),y)

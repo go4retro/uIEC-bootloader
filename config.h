@@ -51,15 +51,15 @@
 #elif CONFIG_HARDWARE_VARIANT == 4
 /* Hardware configuration: uIEC */
 #define USE_FLASH_LED
-#define FLASH_LED_PORT PORTG
-#define FLASH_LED_DDR DDRG
-#define FLASH_LED_PIN PG4
+#define FLASH_LED_PORT PORTE
+#define FLASH_LED_DDR DDRE
+#define FLASH_LED_PIN PE3
 #define FLASH_LED_POLARITY 0
 
 #define USE_ALIVE_LED
-#define ALIVE_LED_PORT PORTG
-#define ALIVE_LED_DDR DDRG
-#define ALIVE_LED_PIN PG4
+#define ALIVE_LED_PORT PORTE
+#define ALIVE_LED_DDR DDRE
+#define ALIVE_LED_PIN PE3
 
 #define USE_FAT12
 #define USE_FAT32

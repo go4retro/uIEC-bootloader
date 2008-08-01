@@ -12,32 +12,13 @@
 # This file is included in the main Makefile and also parsed
 # into autoconf.h.
 
-# MCU to compile for
 CONFIG_MCU=atmega1281
-
-# Use the -relax parameter when linking?
-# Passing -O9 and -relax to the linker saves ~650 bytes of flash,
-# but the option is broken in certain binutils versions.
-# (known troublemakers: binutils 2.17, 2.18 seems fine)
 CONFIG_LINKER_RELAX=n
-
-# MCU frequency in Hz - the fastloader code is hardcoded for 8MHz
 CONFIG_MCU_FREQ=8000000
-
-# Value of the signature word
 CONFIG_BOOT_DEVID=0x32304955
-
-# Enable UART debugging
+CONFIG_BOOT_NAME=bootloader-uIEC
 CONFIG_UART_DEBUG=n
-
-# Baud rate of the UART, not used if CONFIG_UART_DEBUG is disabled
 CONFIG_UART_BAUDRATE=38400
-
-# Select which hardware to compile for
-# Valid values:
-#   1 - custom configuration in config.h
-#   2 - Shadowolf MMC2IEC PCBs version 1.x
-#   3 - original MMC2IEC
-#   4 - uIEC
-#   5 - Shadowolf sd2iec PCBs version 1.x
 CONFIG_HARDWARE_VARIANT=4
+CONFIG_NEW_SDLIB=n
+CONFIG_FLASH_CRC_CHECK=n

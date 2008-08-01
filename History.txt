@@ -2,11 +2,21 @@
 2008-07-16 By Jim Brain
 
 Version for uIEC 2.X hardware:
-- Mega1281
-- new ID
+- Mega1281 support
+- new ID for uIEC
 - FAT32 support
 - alpha support for newer SD card initialization
-- CRC sanity check on flash will reflash if error.
+- Conditional CRC sanity check on flash will reflash if error
+- New build system based on sd2iec build system that simplifies task
+
+2008-07-09 By R.Riedel aka 'Shadowolf'
+
+Removed somewhat redundant and useless CRC-check after flashing
+in order to squeeze the bootloader back into the M32 again. 
+
+2008-07-08 By R.Riedel aka 'Shadowolf'
+
+Activated internal pullup on MISO to enable M644 for use with MMC2IEC 1.6.
 
 2008-02-23 By R.Riedel aka 'Shadowolf'
 
