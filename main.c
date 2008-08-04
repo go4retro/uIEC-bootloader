@@ -127,7 +127,7 @@ static inline void flash_update(void)
 	uint16_t filesector, j;
 	uint8_t i;
 	uint16_t *lpword;
-	uint16_t adr;
+	uint32_t adr;
 	
 	for (filesector = 0; filesector < (FLASHEND - BOOTLDRSIZE + 1) / 512; filesector++)
 	{
@@ -140,7 +140,7 @@ static inline void flash_update(void)
 	
 		for (i=0; i<(512 / SPM_PAGESIZE); i++)
 		{
-			adr = (filesector * 512) + i * SPM_PAGESIZE;
+			adr = (filesector * 512UL) + i * SPM_PAGESIZE;
 			boot_page_erase(adr);
 			while (boot_rww_busy())
 				boot_rww_enable();
