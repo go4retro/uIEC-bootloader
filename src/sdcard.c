@@ -50,6 +50,10 @@
 // which can be found at http://www.gnu.org/licenses/gpl.txt
 //
 
+  The exported functions in this file are weak-aliased to their corresponding
+  versions defined in diskio.h so when this file is the only diskio provider
+  compiled in they will be automatically used by the linker.
+
 */
 
 #include <avr/io.h>
@@ -57,10 +61,13 @@
 #include <avr/pgmspace.h>
 #include <util/crc16.h>
 #include "config.h"
-#include "spi.h"
+#include "avrcompat.h"
 #include "crc7.h"
 #include "fat.h"
+#include "spi.h"
+#include "crc7.h"
 #include "disk_lib.h"
+#include "uart.h"
 
 #ifndef TRUE
 #define TRUE -1
@@ -115,14 +122,11 @@
 #define STATUS_PARAMETER_ERROR 64
 
 
-#ifdef CONFIG_SDHC_SUPPORT
-static uint8_t isSDHC;
-#else
-#define isSDHC 0
-#endif
+/* Card types - cardtype == 0 is MMC */
+#define CARD_SD   (1<<0)
+#define CARD_SDHC (1<<1)
 
-// JLB testing.  2784 without crc checking, 2898 with....
-//#define crc7update(a,y) 0
+static uint8_t cardtype;
 
 static uint8_t sdResponse(uint8_t expected)
 {
@@ -202,7 +206,6 @@ static int sendCommand(const uint8_t  command,
   return i;
 }
 
-#ifdef CONFIG_SDHC_SUPPORT
 // Extended init sequence for SDHC support
 static uint8_t extendedInit(void) {
   uint8_t  i;
@@ -235,7 +238,6 @@ static uint8_t extendedInit(void) {
 
   return TRUE;
 }
-#endif
 
 // SD common initialisation
 static void sdInit(void) {
@@ -259,17 +261,35 @@ static void sdInit(void) {
 
   // Ignore failures, there is at least one Sandisk MMC card
   // that accepts CMD55, but not ACMD41.
+  if (i == 0)
+    /* We know that a card is SD if ACMD41 was accepted. */
+    cardtype |= CARD_SD;
 }
 
+//
+// Public functions
+//
+
+
+/**
+ * sd_initialize - initialize SD card
+ * @drv   : drive
+ *
+ * This function tries to initialize the selected SD card.
+ */
 uint8_t disk_initialize(void) {
   uint8_t  i;
   uint16_t counter;
   uint32_t answer;
 
   spiInit();
-#ifdef CONFIG_SDHC_SUPPORT
-  isSDHC   = FALSE;
-#endif
+  SDCARD_DETECT_SETUP();
+
+  /* Don't bother initializing a card that isn't there */
+  if (!(SDCARD_DETECT))
+    return DISK_INIT;
+
+  cardtype = 0;
 
   SPI_SS_HIGH();
 
@@ -284,10 +304,8 @@ uint8_t disk_initialize(void) {
     return DISK_INIT;
   }
 
-#ifdef CONFIG_SDHC_SUPPORT
   if (!extendedInit())
     return DISK_INIT;
-#endif
 
   sdInit();
 
@@ -312,12 +330,10 @@ uint8_t disk_initialize(void) {
       return DISK_INIT;
     }
 
-#ifdef CONFIG_SDHC_SUPPORT
     // See what card we've got
     if (answer & 0x40000000) {
-      isSDHC = TRUE;
+      cardtype |= CARD_SDHC;
     }
-#endif
   }
 
   // Keep sending CMD1 (SEND_OP_COND) command until zero response
@@ -331,11 +347,10 @@ uint8_t disk_initialize(void) {
     return DISK_INIT;
   }
 
-
   // Send MMC CMD16(SET_BLOCKLEN) to 512 bytes
   i = sendCommand(SET_BLOCKLEN, 512, 1);
   if (i != 0) {
-    return FALSE;
+    return DISK_INIT;
   }
 
   // Thats it!
@@ -344,8 +359,8 @@ uint8_t disk_initialize(void) {
 
 
 /**
- * disk_read - reads sectors from the SD card to buffer
- * @drv   : drive (unused)
+ * sd_read - reads sectors from the SD card to buffer
+ * @drv   : drive
  * @buffer: pointer to the buffer
  * @sector: first sector to be read
  * @count : number of sectors to be read
@@ -363,7 +378,10 @@ void disk_read(uint32_t sector) {
 
   errorcount = 0;
   while (errorcount < CONFIG_SD_AUTO_RETRIES) {
-    res = sendCommand(READ_SINGLE_BLOCK, (isSDHC?(sector<<9):sector), 0);
+    if (cardtype & CARD_SDHC)
+      res = sendCommand(READ_SINGLE_BLOCK, sector, 0);
+    else
+      res = sendCommand(READ_SINGLE_BLOCK, (sector) << 9, 0);
 
     if (res != 0) {
       SPI_SS_HIGH();

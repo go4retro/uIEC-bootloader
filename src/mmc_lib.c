@@ -3,6 +3,7 @@
 #include "disk_lib.h"
 #include "mmc_lib.h"
 #include "fat.h"
+#include "uart.h"
 
 #include <util/delay.h>
 
@@ -49,6 +50,7 @@ static uint8_t send_cmd(void)
 
 uint8_t disk_initialize(void)
 {
+  uart_putc('J');
 	SPCR = 0;
 	MMC_DDR = 1<<SPI_CLK | 1<<SPI_MOSI | 1<<MMC_CS;	//MMC Chip Select -> Output
 	MMC_DDR = 0;
@@ -64,7 +66,9 @@ uint8_t disk_initialize(void)
 	i = 12;
 	while (i)
 	{//Pulse 80+ clocks to reset MMC
+	  uart_putc('k');
 		spi_send_byte(0xFF);
+	  uart_putc('K');
 		i--;
 	}
 	
@@ -84,7 +88,7 @@ uint8_t disk_initialize(void)
 		if (res == 0x01)
 			break;
 	}
-	
+	uart_putc('J');
 	if (i == MMC_CMD0_RETRIES)
 		return DISK_TIMEOUT;
 	

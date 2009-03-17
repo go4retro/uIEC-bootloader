@@ -72,22 +72,6 @@ static uint8_t ata_wait_data(void) {
 }
 
 
-/*-----------------------------------------------------------------------*/
-/* Wait for Busy Low                                                     */
-/*-----------------------------------------------------------------------*/
-
-static uint8_t ata_wait_busy(void) {
-  uint8_t s;
-  uint32_t i = DELAY_VALUE(1000);
-  do {
-    if(!--i) return FALSE;
-    s=ata_read_reg(ATA_REG_STATUS);
-  } while(s & ATA_STATUS_BSY);
-  if (s & ATA_STATUS_ERR) return FALSE;
-  return TRUE;
-}
-
-
 static void ata_select_sector(uint32_t sector) {
   ata_write_reg(ATA_REG_COUNT, 1);
   ata_write_reg(ATA_REG_LBA0, (uint8_t)sector);
@@ -151,7 +135,10 @@ uint8_t disk_initialize(void)
   ata_write_reg (ATA_REG_FEATURES, 3); /* set PIO mode 0 */
   ata_write_reg (ATA_REG_COUNT, 1);
   ATA_WRITE_CMD (ATA_CMD_SETFEATURES);
-  if (!ata_wait_busy()) goto di_error; /* Wait cmd ready */
+  i = DELAY_VALUE(1000);
+  do {
+    if(!--i) goto di_error;
+  } while(ata_read_reg(ATA_REG_STATUS) & ATA_STATUS_BSY);  /* Wait cmd ready */
   ATA_WRITE_CMD(ATA_CMD_IDENTIFY);
   if(!ata_wait_data()) goto di_error;
   ata_read_part(data, 49, 1);

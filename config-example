@@ -53,9 +53,6 @@ CONFIG_SDHC_SUPPORT=y
 # Number of retries if the SD communication fails
 CONFIG_SD_AUTO_RETRIES=10
 
-# Use CRC checks for all SD data transmissions?
-CONFIG_SD_DATACRC=y
-
 # Use the newer SD card library from sd2iec?
 CONFIG_NEW_SDLIB=y
 

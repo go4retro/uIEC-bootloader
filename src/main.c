@@ -200,7 +200,6 @@ int main(void)
 #endif
 	}
 	
-	
 	if (fat_init() == ERR_OK) {
 	  i = 0;
 		do {

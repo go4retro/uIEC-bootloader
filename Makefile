@@ -1,12 +1,5 @@
 # Hey Emacs, this is a -*- makefile -*-
 
-# Define version number
-MAJOR = 0
-MINOR = 7
-PATCHLEVEL = 2
-FIX = 1
-
-
 #----------------------------------------------------------------------------
 # WinAVR Makefile Template written by Eric B. Weddington, Jörg Wunsch, et al.
 #
@@ -49,6 +42,7 @@ FIX = 1
 #
 # To rebuild project do "make clean" then "make all".
 #----------------------------------------------------------------------------
+
 # Read configuration file
 ifdef CONFIG
  CONFIGSUFFIX = $(CONFIG:config%=%)
@@ -72,18 +66,33 @@ include $(CONFIG)
 # Set MCU name and length of binary for bootloader
 MCU := $(CONFIG_MCU)
 ifeq ($(MCU),atmega32)
+  EFUSE = 0xff
+  HFUSE = 0xd2
+  LFUSE = 0xfc
   BOOTLOADERSTARTADR = 0x7800
   BOOTLDRSIZE = 0x0800
 else ifeq ($(MCU),atmega644)
+  EFUSE = 0xff
+  HFUSE = 0xd2
+  LFUSE = 0xfc
   BOOTLOADERSTARTADR = 0xf000
   BOOTLDRSIZE = 0x1000
 else ifeq ($(MCU),atmega644p)
+  EFUSE = 0xff
+  HFUSE = 0xd2
+  LFUSE = 0xfc
   BOOTLOADERSTARTADR = 0xf000
   BOOTLDRSIZE = 0x1000
 else ifeq ($(MCU),atmega128)
+  EFUSE = 0xff
+  HFUSE = 0xd2
+  LFUSE = 0xfc
   BOOTLOADERSTARTADR = 0x1f000
   BOOTLDRSIZE = 0x1000
 else ifeq ($(MCU),atmega1281)
+  EFUSE = 0xff
+  HFUSE = 0xd2
+  LFUSE = 0xfc
   BOOTLOADERSTARTADR = 0x1f000
   BOOTLDRSIZE = 0x1000
 else
@@ -172,24 +181,6 @@ CSTANDARD = -std=gnu99
 CDEFS = -DF_CPU=$(CONFIG_MCU_FREQ)UL
 CDEFS += -DBOOTLDRSIZE=$(BOOTLDRSIZE)UL
 
-# Calculate bootloader version
-BOOT_VERSION = 0x$(MAJOR)$(MINOR)$(PATCHLEVEL)$(FIX)
-
-# Create a version number define
-ifdef PATCHLEVEL
-ifdef FIX
-PROGRAMVERSION := $(MAJOR).$(MINOR).$(PATCHLEVEL).$(FIX)
-else
-PROGRAMVERSION := $(MAJOR).$(MINOR).$(PATCHLEVEL)
-endif
-else
-PROGRAMVERSION := $(MAJOR).$(MINOR)
-endif
-
-LONGVERSION := -$(CONFIG_MCU:atmega%=m%)$(CONFIGSUFFIX)
-
-CDEFS += -DVERSION=\"$(PROGRAMVERSION)\" -DLONGVERSION=\"$(LONGVERSION)\"
-
 # Place -I options here
 CINCS =
 
@@ -211,18 +202,33 @@ CFLAGS += -fpack-struct
 CFLAGS += -fshort-enums
 CFLAGS += -Wall
 CFLAGS += -Wstrict-prototypes
+CFLAGS += -Werror
 CFLAGS += -mshort-calls
 #CFLAGS += -fno-unit-at-a-time
 #CFLAGS += -Wundef
 #CFLAGS += -Wunreachable-code
 #CFLAGS += -Wsign-compare
-#CFLAGS += -Werror
 CFLAGS += -Wa,-adhlns=$(OBJDIR)/$(*F).lst
+CFLAGS += -I$(OBJDIR)
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 CFLAGS += $(CSTANDARD)
+CFLAGS += -ffunction-sections
+CFLAGS += -fdata-sections
 CFLAGS += -mtiny-stack
 #CFLAGS += -mno-interrupts
-CFLAGS += -I$(OBJDIR)
+
+# these are needed for GCC 4.3.2, which is more aggressive at inlining
+CFLAGS += --param inline-call-cost=3
+CFLAGS += -fno-inline-small-functions
+CFLAGS += -fno-move-loop-invariants
+CFLAGS += -fno-split-wide-types
+
+# turn these on to keep the functions in the same order as in the source
+# this is only useful if you're looking at disassembly
+#CFLAGS += -fno-reorder-blocks
+#CFLAGS += -fno-reorder-blocks-and-partition
+#CFLAGS += -fno-reorder-functions
+#CFLAGS += -fno-toplevel-reorder
 
 ifeq ($(CONFIG_STACK_TRACKING),y)
   CFLAGS += -finstrument-functions
@@ -301,9 +307,11 @@ LDFLAGS += $(EXTMEMOPTS)
 LDFLAGS += $(patsubst %,-L%,$(EXTRALIBDIRS))
 LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
 LDFLAGS	+= -Wl,--section-start=.text=$(BOOTLOADERSTARTADR)
+LDFLAGS	+= -Wl,--section-start=.text=$(BOOTLOADERSTARTADR)
+LDFLAGS += -Wl,--gc-sections
 #LDFLAGS += -T linker_script.x
 ifeq ($(CONFIG_LINKER_RELAX),y)
-  LDFLAGS += -Wl,-O9,-relax
+  LDFLAGS += -Wl,-O9,--relax
 endif
 
 
@@ -323,8 +331,29 @@ AVRDUDE_PORT = lpt1    # programmer connected to serial device
 
 AVRDUDE_WRITE_FLASH = -U flash:w:$(OBJDIR)/$(TARGET).hex
 #AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(OBJDIR)/$(TARGET).eep
+# Allow fuse overrides from the config file
+ifdef CONFIG_EFUSE
+  EFUSE := CONFIG_EFUSE
+endif
+ifdef CONFIG_HFUSE
+  HFUSE := CONFIG_HFUSE
+endif
+ifdef CONFIG_LFUSE
+  LFUSE := CONFIG_LFUSE
+endif
 
-AVRDUDE_WRITE_FUSES = -U efuse:w:$(EFUSE):m -U hfuse:w:$(HFUSE):m -U lfuse:w:$(LFUSE):m
+# Calculate command line arguments for fuses
+AVRDUDE_WRITE_FUSES :=
+ifdef EFUSE
+  AVRDUDE_WRITE_FUSES += -U efuse:w:$(EFUSE):m
+endif
+ifdef HFUSE
+  AVRDUDE_WRITE_FUSES += -U hfuse:w:$(HFUSE):m
+endif
+ifdef LFUSE
+  AVRDUDE_WRITE_FUSES += -U lfuse:w:$(LFUSE):m
+endif
+
 
 # Uncomment the following if you want avrdude's erase cycle counter.
 # Note that this counter needs to be initialized first using -Yn,
@@ -385,11 +414,9 @@ CC = avr-gcc
 OBJCOPY = avr-objcopy
 OBJDUMP = avr-objdump
 SIZE = avr-size
-AR = avr-ar rcs
 NM = avr-nm
 AVRDUDE = avrdude
 REMOVE = rm -f
-REMOVEDIR = rm -rf
 COPY = cp
 WINSHELL = cmd
 
@@ -405,12 +432,12 @@ LST := $(patsubst %,$(OBJDIR)/%,$(CSRC:.c=.lst) $(ASRC:.S=.lst))
 
 
 # Compiler flags to generate dependency files.
-GENDEPFLAGS = -MD -MP -MF .dep/$(@F).d
+GENDEPFLAGS = -MM -MD -MP -MF .dep/$(@F).d
 
 
 # Combine all necessary flags and optional flags.
 # Add target processor to flags.
-ALL_CFLAGS = -mmcu=$(MCU) -I$(SRCDIR) $(CFLAGS) $(GENDEPFLAGS)
+ALL_CFLAGS = -mmcu=$(MCU) -I$(SRCDIR) $(CFLAGS)
 ALL_ASFLAGS = -mmcu=$(MCU) -I$(SRCDIR) -x assembler-with-cpp $(ASFLAGS) $(CDEFS)
 
 
@@ -450,9 +477,7 @@ program: $(OBJDIR)/$(TARGET).hex $(OBJDIR)/$(TARGET).eep
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
 	
 fuses: $(OBJDIR)/$(TARGET).hex $(OBJDIR)/$(TARGET).eep
-	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM) $(AVRDUDE_WRITE_FUSES)
-  
-
+	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FUSES) 
 
 # Generate avr-gdb config/init file which does the following:
 #     define the reset signal, load the target file, connect to target, and set 
@@ -509,20 +534,9 @@ $(OBJDIR)/autoconf.h: $(CONFIG) | $(OBJDIR)
 	$(Q)gawk -f conf2h.awk $(CONFIG) > $(OBJDIR)/autoconf.h
 
 # Create final output files (.hex, .eep) from ELF output file.
-ifeq ($(CONFIG_BOOTLOADER),y)
 $(OBJDIR)/%.bin: $(OBJDIR)/%.elf
 	$(E) "  BIN    $@"
 	$(Q)$(OBJCOPY) -O binary -R .eeprom $< $@
-	$(E) "  CRCGEN $@"
-	-$(Q)crcgen-new $@ $(BINARY_LENGTH) $(CONFIG_BOOT_DEVID) $(BOOT_VERSION)
-	$(E) "  COPY   $(CONFIG_HARDWARE_NAME)-bootloader-$(PROGRAMVERSION).bin"
-	$(Q)$(COPY) $@ $(OBJDIR)/$(CONFIG_HARDWARE_NAME)-bootloader-$(PROGRAMVERSION).bin
-else
-$(OBJDIR)/%.bin: $(OBJDIR)/%.elf
-	$(E) "  BIN    $@"
-	$(Q)$(OBJCOPY) -O binary -R .eeprom $< $@
-endif
-
 
 $(OBJDIR)/%.hex: $(OBJDIR)/%.elf
 	$(E) "  HEX    $@"
@@ -556,6 +570,7 @@ $(OBJDIR)/%.elf: $(OBJ) | $(OBJDIR)
 # Compile: create object files from C source files.
 $(OBJDIR)/%.o : $(SRCDIR)/%.c | $(OBJDIR) $(OBJDIR)/autoconf.h
 	$(E) "  CC     $<"
+	$(Q)$(CC) $(ALL_CFLAGS) $(GENDEPFLAGS) $<
 	$(Q)$(CC) -c $(ALL_CFLAGS) $< -o $@ 
 
 
