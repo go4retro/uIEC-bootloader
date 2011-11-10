@@ -67,7 +67,6 @@
 #include "spi.h"
 #include "crc7.h"
 #include "disk_lib.h"
-#include "uart.h"
 
 #ifndef TRUE
 #define TRUE -1

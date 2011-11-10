@@ -28,7 +28,7 @@
 
 /* USART */
 
-#if defined __AVR_ATmega644__ || defined __AVR_ATmega644P__ || defined __AVR_ATmega1281__ || defined __AVR_ATmega2561__
+#if defined __AVR_ATmega644__ || defined __AVR_ATmega644P__ || defined __AVR_ATmega1284P__ || defined __AVR_ATmega1281__ || defined __AVR_ATmega2561__
 
 #  define UDRE  UDRE0
 #  ifdef USE_UART1
@@ -98,14 +98,14 @@
 #  define TIMSK2 TIMSK
 #  define OCIE2A OCIE2
 #  define OCR2A  OCR2
-#  define U2X    U2X0 
+#  define U2X    U2X0
 
 #else
 #  error Unknown chip!
 #endif
 
 /* SPI */
-#if defined __AVR_ATmega32__ || defined __AVR_ATmega644__ || defined __AVR_ATmega644P__
+#if defined __AVR_ATmega32__ || defined __AVR_ATmega644__ || defined __AVR_ATmega644P__ || defined __AVR_ATmega1284P__
 
 #  define SPI_PORT PORTB
 #  define SPI_DDR  DDRB

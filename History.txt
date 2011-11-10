@@ -1,4 +1,7 @@
                               Bootloader Change Log
+2010-10-16 by J. Jungermann aKa abraXxl
+- added ATMega 1284p support
+
 2009-03-16 by Jim Brain
 - GCC 4.3.2 support
 - Better fuse support

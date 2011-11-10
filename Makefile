@@ -1,5 +1,6 @@
 # Hey Emacs, this is a -*- makefile -*-
 
+
 #----------------------------------------------------------------------------
 # WinAVR Makefile Template written by Eric B. Weddington, Jörg Wunsch, et al.
 #
@@ -32,7 +33,7 @@
 # make program = Download the hex file to the device, using avrdude.
 #                Please customize the avrdude settings below first!
 #
-# make debug = Start either simulavr or avarice as specified for debugging, 
+# make debug = Start either simulavr or avarice as specified for debugging,
 #              with avr-gdb or avr-insight as the front end for debugging.
 #
 # make filename.s = Just compile filename.c into the assembler code only.
@@ -66,31 +67,37 @@ include $(CONFIG)
 # Set MCU name and length of binary for bootloader
 MCU := $(CONFIG_MCU)
 ifeq ($(MCU),atmega32)
-  EFUSE = 0xff
-  HFUSE = 0xd2
+  EFUSE = 0xfd
+  HFUSE = 0x92
   LFUSE = 0xfc
   BOOTLOADERSTARTADR = 0x7800
   BOOTLDRSIZE = 0x0800
 else ifeq ($(MCU),atmega644)
-  EFUSE = 0xff
-  HFUSE = 0xd2
+  EFUSE = 0xfd
+  HFUSE = 0x92
   LFUSE = 0xfc
   BOOTLOADERSTARTADR = 0xf000
   BOOTLDRSIZE = 0x1000
 else ifeq ($(MCU),atmega644p)
-  EFUSE = 0xff
-  HFUSE = 0xd2
+  EFUSE = 0xfd
+  HFUSE = 0x92
   LFUSE = 0xfc
   BOOTLOADERSTARTADR = 0xf000
   BOOTLDRSIZE = 0x1000
 else ifeq ($(MCU),atmega128)
-  EFUSE = 0xff
-  HFUSE = 0xd2
+  EFUSE = 0xfd
+  HFUSE = 0x92
   LFUSE = 0xfc
   BOOTLOADERSTARTADR = 0x1f000
   BOOTLDRSIZE = 0x1000
+else ifeq ($(MCU),atmega1284p)
+  EFUSE = 0xfd
+  HFUSE = 0x92
+  LFUSE = 0xfc # 0xef would be okay, too
+  BOOTLOADERSTARTADR = 0x1f000
+  BOOTLDRSIZE = 0x1000
 else ifeq ($(MCU),atmega1281)
-  EFUSE = 0xff
+  EFUSE = 0xf4
   HFUSE = 0xd2
   LFUSE = 0xfc
   BOOTLOADERSTARTADR = 0x1f000
@@ -103,7 +110,6 @@ nochip:
 	@echo
 	@echo 'Please add the size of the binary to the Makefile.'
 	@exit 1
-
 endif
 
 # Directory for all source files
@@ -185,6 +191,19 @@ CDEFS += -DBOOTLDRSIZE=$(BOOTLDRSIZE)UL
 CINCS =
 
 
+# Define programs and commands.
+# CC must be defined here to generate the correct CFLAGS
+SHELL = sh
+CC = avr-gcc
+OBJCOPY = avr-objcopy
+OBJDUMP = avr-objdump
+SIZE = avr-size
+NM = avr-nm
+AVRDUDE = avrdude
+REMOVE = rm -f
+COPY = cp
+WINSHELL = cmd
+
 
 #---------------- Compiler Options ----------------
 #  -g*:          generate debugging information
@@ -202,6 +221,7 @@ CFLAGS += -fpack-struct
 CFLAGS += -fshort-enums
 CFLAGS += -Wall
 CFLAGS += -Wstrict-prototypes
+# Add this if you want all warnings output as errors.
 CFLAGS += -Werror
 CFLAGS += -mshort-calls
 #CFLAGS += -fno-unit-at-a-time
@@ -216,8 +236,11 @@ CFLAGS += -ffunction-sections
 CFLAGS += -fdata-sections
 CFLAGS += -mtiny-stack
 #CFLAGS += -mno-interrupts
+#CFLAGS += -mcall-prologues
 
 # these are needed for GCC 4.3.2, which is more aggressive at inlining
+# gcc-4.2 knows one of those, but it tends to increase code size
+ifeq ($(shell $(CC) --version|gawk -f gcctest.awk),YES)
 CFLAGS += --param inline-call-cost=3
 CFLAGS += -fno-inline-small-functions
 CFLAGS += -fno-move-loop-invariants
@@ -229,6 +252,7 @@ CFLAGS += -fno-split-wide-types
 #CFLAGS += -fno-reorder-blocks-and-partition
 #CFLAGS += -fno-reorder-functions
 #CFLAGS += -fno-toplevel-reorder
+endif
 
 ifeq ($(CONFIG_STACK_TRACKING),y)
   CFLAGS += -finstrument-functions
@@ -255,7 +279,7 @@ PRINTF_LIB_MIN = -Wl,-u,vfprintf -lprintf_min
 PRINTF_LIB_FLOAT = -Wl,-u,vfprintf -lprintf_flt
 
 # If this is left blank, then it will use the Standard printf version.
-PRINTF_LIB = 
+PRINTF_LIB =
 #PRINTF_LIB = $(PRINTF_LIB_MIN)
 #PRINTF_LIB = $(PRINTF_LIB_FLOAT)
 
@@ -267,7 +291,7 @@ SCANF_LIB_MIN = -Wl,-u,vfscanf -lscanf_min
 SCANF_LIB_FLOAT = -Wl,-u,vfscanf -lscanf_flt
 
 # If this is left blank, then it will use the Standard scanf version.
-SCANF_LIB = 
+SCANF_LIB =
 #SCANF_LIB = $(SCANF_LIB_MIN)
 #SCANF_LIB = $(SCANF_LIB_FLOAT)
 
@@ -291,7 +315,6 @@ EXTRALIBDIRS =
 
 # 64 KB of external RAM, starting after internal RAM (ATmega128!),
 # only used for heap (malloc()).
-#EXTMEMOPTS = -Wl,--section-start,.data=0x801100,--defsym=__heap_end=0x80ffff
 #EXTMEMOPTS = -Wl,--defsym=__heap_start=0x801100,--defsym=__heap_end=0x80ffff
 
 EXTMEMOPTS =
@@ -306,12 +329,11 @@ LDFLAGS = -Wl,-Map=$(OBJDIR)/$(TARGET).map,--cref
 LDFLAGS += $(EXTMEMOPTS)
 LDFLAGS += $(patsubst %,-L%,$(EXTRALIBDIRS))
 LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
-LDFLAGS	+= -Wl,--section-start=.text=$(BOOTLOADERSTARTADR)
-LDFLAGS	+= -Wl,--section-start=.text=$(BOOTLOADERSTARTADR)
 LDFLAGS += -Wl,--gc-sections
+LDFLAGS	+= -Wl,--section-start=.text=$(BOOTLOADERSTARTADR)
 #LDFLAGS += -T linker_script.x
 ifeq ($(CONFIG_LINKER_RELAX),y)
-  LDFLAGS += -Wl,-O9,--relax
+	LDFLAGS += -Wl,-O1,--relax
 endif
 
 
@@ -323,35 +345,37 @@ endif
 #
 # Type: avrdude -c ?
 # to get a full listing.
+# By default, use what is in .avrduderc
 #
-AVRDUDE_PROGRAMMER = stk200
+#AVRDUDE_PROGRAMMER = stk200
 
 # com1 = serial port. Use lpt1 to connect to parallel port.
-AVRDUDE_PORT = lpt1    # programmer connected to serial device
+#AVRDUDE_PORT = lpt1    # programmer connected to serial device
 
 AVRDUDE_WRITE_FLASH = -U flash:w:$(OBJDIR)/$(TARGET).hex
 #AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(OBJDIR)/$(TARGET).eep
+
 # Allow fuse overrides from the config file
 ifdef CONFIG_EFUSE
-  EFUSE := CONFIG_EFUSE
+	EFUSE := $(CONFIG_EFUSE)
 endif
 ifdef CONFIG_HFUSE
-  HFUSE := CONFIG_HFUSE
+	HFUSE := $(CONFIG_HFUSE)
 endif
 ifdef CONFIG_LFUSE
-  LFUSE := CONFIG_LFUSE
+	LFUSE := $(CONFIG_LFUSE)
 endif
 
 # Calculate command line arguments for fuses
 AVRDUDE_WRITE_FUSES :=
-ifdef EFUSE
-  AVRDUDE_WRITE_FUSES += -U efuse:w:$(EFUSE):m
+ifdef LFUSE
+  AVRDUDE_WRITE_FUSES += -U lfuse:w:$(LFUSE):m
 endif
 ifdef HFUSE
   AVRDUDE_WRITE_FUSES += -U hfuse:w:$(HFUSE):m
 endif
-ifdef LFUSE
-  AVRDUDE_WRITE_FUSES += -U lfuse:w:$(LFUSE):m
+ifdef EFUSE
+  AVRDUDE_WRITE_FUSES += -U efuse:w:$(EFUSE):m
 endif
 
 
@@ -365,11 +389,17 @@ endif
 #AVRDUDE_NO_VERIFY = -V
 
 # Increase verbosity level.  Please use this when submitting bug
-# reports about avrdude. See <http://savannah.nongnu.org/projects/avrdude> 
+# reports about avrdude. See <http://savannah.nongnu.org/projects/avrdude>
 # to submit bug reports.
 #AVRDUDE_VERBOSE = -v -v
 
-AVRDUDE_FLAGS = -p $(MCU) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER)
+ifdef AVRDUDE_PROGRAMMER
+  AVRDUDE_FLAGS = -c $(AVRDUDE_PROGRAMMER)
+endif
+ifdef AVRDUDE_PORT
+  AVRDUDE_FLAGS += -P $(AVRDUDE_PORT)
+endif
+AVRDUDE_FLAGS += -p $(MCU)
 AVRDUDE_FLAGS += $(AVRDUDE_NO_VERIFY)
 AVRDUDE_FLAGS += $(AVRDUDE_VERBOSE)
 AVRDUDE_FLAGS += $(AVRDUDE_ERASE_COUNTER)
@@ -399,26 +429,13 @@ JTAG_DEV = /dev/com1
 DEBUG_PORT = 4242
 
 # Debugging host used to communicate between GDB / avarice / simulavr, normally
-#     just set to localhost unless doing some sort of crazy debugging when 
+#     just set to localhost unless doing some sort of crazy debugging when
 #     avarice is running on a different computer.
 DEBUG_HOST = localhost
 
 
 
 #============================================================================
-
-
-# Define programs and commands.
-SHELL = sh
-CC = avr-gcc
-OBJCOPY = avr-objcopy
-OBJDUMP = avr-objdump
-SIZE = avr-size
-NM = avr-nm
-AVRDUDE = avrdude
-REMOVE = rm -f
-COPY = cp
-WINSHELL = cmd
 
 
 # De-dupe the list of C source files
@@ -432,12 +449,12 @@ LST := $(patsubst %,$(OBJDIR)/%,$(CSRC:.c=.lst) $(ASRC:.S=.lst))
 
 
 # Compiler flags to generate dependency files.
-GENDEPFLAGS = -MM -MD -MP -MF .dep/$(@F).d
+GENDEPFLAGS = -MMD -MP -MF .dep/$(@F).d
 
 
 # Combine all necessary flags and optional flags.
 # Add target processor to flags.
-ALL_CFLAGS = -mmcu=$(MCU) -I$(SRCDIR) $(CFLAGS)
+ALL_CFLAGS = -mmcu=$(MCU) -I$(SRCDIR) $(CFLAGS) $(GENDEPFLAGS)
 ALL_ASFLAGS = -mmcu=$(MCU) -I$(SRCDIR) -x assembler-with-cpp $(ASFLAGS) $(CDEFS)
 
 
@@ -474,15 +491,19 @@ AVRMEM = avr-mem.sh $(TARGET).elf $(MCU)
 
 # Program the device.  
 program: $(OBJDIR)/$(TARGET).hex $(OBJDIR)/$(TARGET).eep
-	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
-	
-fuses: $(OBJDIR)/$(TARGET).hex $(OBJDIR)/$(TARGET).eep
-	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FUSES) 
+	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH)  $(AVRDUDE_WRITE_EEPROM)
+
+# Set fuses of the device
+fuses: $(CONFIG)
+	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FUSES)
+
+progall: $(OBJDIR)/$(TARGET).hex $(OBJDIR)/$(TARGET).eep $(CONFIG)
+	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH)  $(AVRDUDE_WRITE_EEPROM) $(AVRDUDE_WRITE_FUSES)
 
 # Generate avr-gdb config/init file which does the following:
-#     define the reset signal, load the target file, connect to target, and set 
+#     define the reset signal, load the target file, connect to target, and set
 #     a breakpoint at main().
-gdb-config: 
+gdb-config:
 	@$(REMOVE) $(GDBINIT_FILE)
 	@echo define reset >> $(GDBINIT_FILE)
 	@echo SIGNAL SIGHUP >> $(GDBINIT_FILE)
@@ -570,8 +591,7 @@ $(OBJDIR)/%.elf: $(OBJ) | $(OBJDIR)
 # Compile: create object files from C source files.
 $(OBJDIR)/%.o : $(SRCDIR)/%.c | $(OBJDIR) $(OBJDIR)/autoconf.h
 	$(E) "  CC     $<"
-	$(Q)$(CC) $(ALL_CFLAGS) $(GENDEPFLAGS) $<
-	$(Q)$(CC) -c $(ALL_CFLAGS) $< -o $@ 
+	$(Q)$(CC) -c $(ALL_CFLAGS) $< -o $@
 
 
 # Compile: create assembler files from C source files.
@@ -588,7 +608,7 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.S | $(OBJDIR) $(OBJDIR)/autoconf.h
 # Create preprocessed source for use in sending a bug report.
 $(OBJDIR)/%.i : $(SRCDIR)/%.c | $(OBJDIR) $(OBJDIR)/autoconf.h
 	$(E) "  CC     $<"
-	$(Q)$(CC) -E -mmcu=$(MCU) -I$(SRCDIR) $(CFLAGS) $< -o $@ 
+	$(Q)$(CC) -E -mmcu=$(MCU) -I$(SRCDIR) $(CFLAGS) $< -o $@
 
 # Create the output directory
 $(OBJDIR):

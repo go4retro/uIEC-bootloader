@@ -22,10 +22,20 @@
 /* #  define SD_SUPPLY_VOLTAGE (1L<<22)  / * 3.4V - 3.5V */
 /* #  define SD_SUPPLY_VOLTAGE (1L<<23)  / * 3.5V - 3.6V */
 
+/* CARD_DETECT must return non-zero when card is inserted */
+/* This must be a pin capable of generating interrupts.   */
+#  define SDCARD_DETECT         (!(PIND & _BV(PD2)))
+#  define SDCARD_DETECT_SETUP() do { DDRD &= ~_BV(PD2); PORTD |= _BV(PD2); } while(0)
+#  define SD_CHANGE_SETUP()     do { } while(0)
 
 #elif CONFIG_HARDWARE_VARIANT==2
 /* Hardware configuration: Shadowolf 1 */
 #  define SD_SUPPLY_VOLTAGE     (1L<<18)
+
+#  define SDCARD_DETECT         (!(PIND & _BV(PD2)))
+#  define SDCARD_DETECT_SETUP() do { DDRD &= ~_BV(PD2); PORTD |= _BV(PD2); } while(0)
+#  define SD_CHANGE_SETUP()     do { } while(0)
+
 #  define USE_FLASH_LED
 #  define FLASH_LED_PORT PORTC
 #  define FLASH_LED_DDR DDRC
@@ -39,13 +49,38 @@
 
 #  define USE_FAT12
 /* #define USE_FAT32 */
-  
+
 #  define INIT_RETRIES 10
 
 
 #elif CONFIG_HARDWARE_VARIANT == 3
 /* Hardware configuration: LarsP */
-#  define SD_SUPPLY_VOLTAGE     (1L<<21)
+#  define INIT_RETRIES 10
+
+#  define SD_SUPPLY_VOLTAGE     (1L<<18)
+
+#  define SDCARD_DETECT         (!(PIND & _BV(PD2)))
+#  define SDCARD_DETECT_SETUP() do { DDRD &= ~_BV(PD2); PORTD |= _BV(PD2); } while(0)
+#  define SD_CHANGE_SETUP()     do { } while(0)
+
+#  define USE_FLASH_LED
+
+#  define FLASH_LED_PORT PORTA
+#  define FLASH_LED_DDR DDRA
+#  define FLASH_LED_PIN PA0
+#  define FLASH_LED_POLARITY 0
+
+#  define ALIVE_LED_PORT PORTA
+#  define ALIVE_LED_DDR DDRA
+#  define ALIVE_LED_PIN PA1
+#  define ALIVE_LED_POLARITY 0
+
+#  define USE_ALIVE_LED
+
+#  define USE_FAT12
+#  define USE_FAT32
+
+#  define INIT_RETRIES 10
 
 
 #elif CONFIG_HARDWARE_VARIANT == 4
@@ -70,6 +105,11 @@
 #elif CONFIG_HARDWARE_VARIANT==5
 /* Hardware configuration: Shadowolf 2 aka sd2iec 1.x */
 #  define SD_SUPPLY_VOLTAGE     (1L<<18)
+
+#  define SDCARD_DETECT         (!(PIND & _BV(PD2)))
+#  define SDCARD_DETECT_SETUP() do { DDRD &= ~_BV(PD2); PORTD |= _BV(PD2); } while(0)
+#  define SD_CHANGE_SETUP()     do { } while(0)
+
 #  define USE_FLASH_LED
 #  define FLASH_LED_PORT PORTC
 #  define FLASH_LED_DDR DDRC
@@ -110,7 +150,7 @@
 #  define ALIVE_LED_PIN PG1
 
 #  define USE_FAT12
-#  define USE_FAT32 */
+#  define USE_FAT32
   
 #  define INIT_RETRIES 10
 
