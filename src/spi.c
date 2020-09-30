@@ -75,6 +75,8 @@ void spiInit(void)
 
   // clear recieve buffer
   dummy = SPDR;
+
+  (void)dummy; // to prevent errors.
 }
 
 

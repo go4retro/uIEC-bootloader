@@ -108,7 +108,7 @@ nochip:
 	@echo '=============================================================='
 	@echo 'No known target chip specified.'
 	@echo
-	@echo 'Please add the size of the binary to the Makefile.'
+	@echo 'Please edit the Makefile.'
 	@exit 1
 endif
 
@@ -154,7 +154,7 @@ endif
 ASRC =
 
 
-# Optimization level, can be [0, 1, 2, 3, s]. 
+# Optimization level, can be [0, 1, 2, 3, s].
 #     0 = turn off optimization. s = optimize for size.
 #     (Note: 3 is not always the best optimization level. See avr-libc FAQ.)
 # Use s -mcall-prologues when you really need size...
@@ -223,10 +223,14 @@ CFLAGS += -Wall
 CFLAGS += -Wstrict-prototypes
 # Add this if you want all warnings output as errors.
 CFLAGS += -Werror
-CFLAGS += -mshort-calls
+# Use this only on small uCs (program size-wise) and only as a last resort
+#CFLAGS += -mshort-calls
 #CFLAGS += -fno-unit-at-a-time
 #CFLAGS += -Wundef
+#CFLAGS += -Wextra
 #CFLAGS += -Wunreachable-code
+#CFLAGS += -Wshadow
+#CFLAGS += -Winline
 #CFLAGS += -Wsign-compare
 CFLAGS += -Wa,-adhlns=$(OBJDIR)/$(*F).lst
 CFLAGS += -I$(OBJDIR)
@@ -237,12 +241,15 @@ CFLAGS += -fdata-sections
 CFLAGS += -mtiny-stack
 #CFLAGS += -mno-interrupts
 #CFLAGS += -mcall-prologues
-
-# these are needed for GCC 4.3.2, which is more aggressive at inlining
-# gcc-4.2 knows one of those, but it tends to increase code size
-ifeq ($(shell $(CC) --version|gawk -f gcctest.awk),YES)
-CFLAGS += --param inline-call-cost=3
-CFLAGS += -fno-inline-small-functions
+#CFLAGS += -ffreestanding
+#CFLAGS += -fno-tree-scev-cprop
+#CFLAGS += -fno-optimize-sibling-calls
+#CFLAGS += -fno-tree-switch-conversion
+#CFLAGS += -maccumulate-args
+#CFLAGS += -mstrict-X
+#CFLAGS += -flto
+#CFLAGS += -fno-inline-small-functions
+#CFLAGS += -finline-limit=3 
 CFLAGS += -fno-move-loop-invariants
 CFLAGS += -fno-split-wide-types
 
@@ -252,7 +259,7 @@ CFLAGS += -fno-split-wide-types
 #CFLAGS += -fno-reorder-blocks-and-partition
 #CFLAGS += -fno-reorder-functions
 #CFLAGS += -fno-toplevel-reorder
-endif
+#CFLAGS += -fno-tree-loop-optimize
 
 ifeq ($(CONFIG_STACK_TRACKING),y)
   CFLAGS += -finstrument-functions
@@ -330,6 +337,7 @@ LDFLAGS += $(EXTMEMOPTS)
 LDFLAGS += $(patsubst %,-L%,$(EXTRALIBDIRS))
 LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
 LDFLAGS += -Wl,--gc-sections
+LDFLAGS += -flto
 LDFLAGS	+= -Wl,--section-start=.text=$(BOOTLOADERSTARTADR)
 #LDFLAGS += -T linker_script.x
 ifeq ($(CONFIG_LINKER_RELAX),y)
@@ -340,7 +348,7 @@ endif
 
 #---------------- Programming Options (avrdude) ----------------
 
-# Programming hardware: alf avr910 avrisp bascom bsd 
+# Programming hardware: alf avr910 avrisp bascom bsd
 # dt006 pavr picoweb pony-stk200 sp12 stk200 stk500 stk500v2
 #
 # Type: avrdude -c ?
@@ -438,6 +446,18 @@ DEBUG_HOST = localhost
 #============================================================================
 
 
+# Presume we're in a project directory so name the program like the current
+# directory. Set PROGRAM to override.
+ifeq ($(TARGET),)
+  TARGET := $(notdir $(CURDIR))
+endif
+ 
+# Presume the C and asm source files to be located in the subdirectory 'src'.
+# Set SRCDIR to override.
+ifeq ($(SRCDIR),)
+  SRCDIR := src
+endif
+ 
 # De-dupe the list of C source files
 CSRC := $(sort $(SRC))
 
@@ -489,7 +509,7 @@ HEXSIZE = $(SIZE) --mcu=$(MCU) --target=$(FORMAT) $(OBJDIR)/$(TARGET).hex
 ELFSIZE = $(SIZE) -A $(OBJDIR)/$(TARGET).elf
 AVRMEM = avr-mem.sh $(TARGET).elf $(MCU)
 
-# Program the device.  
+# Program the device.
 program: $(OBJDIR)/$(TARGET).hex $(OBJDIR)/$(TARGET).eep
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH)  $(AVRDUDE_WRITE_EEPROM)
 
@@ -613,7 +633,7 @@ $(OBJDIR)/%.i : $(SRCDIR)/%.c | $(OBJDIR) $(OBJDIR)/autoconf.h
 # Create the output directory
 $(OBJDIR):
 	$(E) "  MKDIR  $(OBJDIR)"
-	$(Q)mkdir $(OBJDIR)
+	-$(Q)mkdir -p $(OBJDIR)
 
 # Target: clean project.
 clean: begin clean_list end
@@ -637,7 +657,7 @@ clean_list :
 	$(Q)$(REMOVE) .dep/*
 	$(Q)$(REMOVE) -rf codedoc
 	$(Q)$(REMOVE) -rf doxyinput
-	-$(Q)rmdir $(OBJDIR)
+	-$(Q)rmdir --ignore-fail-on-non-empty -p $(OBJDIR)
 
 # Include the dependency files.
 -include $(shell mkdir .dep 2>/dev/null) $(wildcard .dep/*)
