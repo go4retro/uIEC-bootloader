@@ -1,4 +1,7 @@
                               Bootloader Change Log
+2020-09-30 by Jim Brain
+- GCC updates given newer compiler
+
 2010-10-16 by J. Jungermann aKa abraXxl
 - added ATMega 1284p support
 
